@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
@@ -170,7 +169,7 @@
 
       <a
         class="open-button"
-        href="./TSUGU-Kamakura.pdf"
+        href="./TSUGU_Kamakura.pdf"
         target="_blank"
         rel="noopener noreferrer"
       >
@@ -242,17 +241,13 @@
     pdfjsLib.GlobalWorkerOptions.workerSrc =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
 
-    const pdfUrl = "./tsugu-kamakura.pdf";
+    const pdfUrl = "./TSUGU_Kamakura.pdf";
 
     const viewer = document.getElementById("viewer");
     const canvas = document.getElementById("pdf-canvas");
     const context = canvas.getContext("2d");
-
-    const container =
-      document.getElementById("canvas-container");
-
-    const loadingMessage =
-      document.getElementById("loading-message");
+    const container = document.getElementById("canvas-container");
+    const loadingMessage = document.getElementById("loading-message");
 
     const previousButton =
       document.getElementById("previous-button");
@@ -336,10 +331,7 @@
         container.scrollTop = 0;
         container.scrollLeft = 0;
       } catch (error) {
-        showError(
-          "The page could not be displayed."
-        );
-
+        showError("The page could not be displayed.");
         console.error(error);
       } finally {
         isRendering = false;
@@ -367,66 +359,46 @@
       canvas.style.display = "none";
     }
 
-    previousButton.addEventListener(
-      "click",
-      () => {
-        if (currentPage <= 1) {
-          return;
+    previousButton.addEventListener("click", () => {
+      if (currentPage <= 1) return;
+
+      currentPage -= 1;
+      queueRender(currentPage);
+    });
+
+    nextButton.addEventListener("click", () => {
+      if (
+        !pdfDocument ||
+        currentPage >= pdfDocument.numPages
+      ) {
+        return;
+      }
+
+      currentPage += 1;
+      queueRender(currentPage);
+    });
+
+    zoomInButton.addEventListener("click", () => {
+      scale = Math.min(scale + 0.2, 3);
+      queueRender(currentPage);
+    });
+
+    zoomOutButton.addEventListener("click", () => {
+      scale = Math.max(scale - 0.2, 0.6);
+      queueRender(currentPage);
+    });
+
+    fullscreenButton.addEventListener("click", async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await viewer.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
         }
-
-        currentPage -= 1;
-        queueRender(currentPage);
+      } catch (error) {
+        console.error("Fullscreen is unavailable:", error);
       }
-    );
-
-    nextButton.addEventListener(
-      "click",
-      () => {
-        if (
-          !pdfDocument ||
-          currentPage >= pdfDocument.numPages
-        ) {
-          return;
-        }
-
-        currentPage += 1;
-        queueRender(currentPage);
-      }
-    );
-
-    zoomInButton.addEventListener(
-      "click",
-      () => {
-        scale = Math.min(scale + 0.2, 3);
-        queueRender(currentPage);
-      }
-    );
-
-    zoomOutButton.addEventListener(
-      "click",
-      () => {
-        scale = Math.max(scale - 0.2, 0.6);
-        queueRender(currentPage);
-      }
-    );
-
-    fullscreenButton.addEventListener(
-      "click",
-      async () => {
-        try {
-          if (!document.fullscreenElement) {
-            await viewer.requestFullscreen();
-          } else {
-            await document.exitFullscreen();
-          }
-        } catch (error) {
-          console.error(
-            "Fullscreen is unavailable:",
-            error
-          );
-        }
-      }
-    );
+    });
 
     try {
       pdfDocument =
@@ -441,7 +413,7 @@
       await renderPage(currentPage);
     } catch (error) {
       showError(
-        "Unable to load the PDF. Confirm that tsugu-kamakura.pdf is uploaded to the same GitHub repository."
+        "Unable to load TSUGU_Kamakura.pdf. Confirm that the PDF and index.html are in the same repository folder."
       );
 
       console.error(error);
