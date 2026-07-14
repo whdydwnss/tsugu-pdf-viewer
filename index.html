@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>TSUGU Kamakura Proposal</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+      background: #f3f2ef;
+      color: #202020;
+    }
+
+    body {
+      padding: 16px;
+    }
+
+    .viewer {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid #dedbd5;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      padding: 18px 22px;
+      border-bottom: 1px solid #ece9e3;
+    }
+
+    .title h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .title p {
+      margin: 0;
+      color: #787878;
+      font-size: 13px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 18px;
+      border-bottom: 1px solid #ece9e3;
+      background: #faf9f7;
+    }
+
+    button,
+    .open-button {
+      border: 1px solid #d8d4cc;
+      border-radius: 8px;
+      padding: 9px 13px;
+      background: #ffffff;
+      color: #222222;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button:hover,
+    .open-button:hover {
+      background: #f0eee9;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .page-info {
+      margin: 0 8px;
+      color: #666666;
+      font-size: 13px;
+    }
+
+    .spacer {
+      flex: 1;
+    }
+
+    .canvas-container {
+      height: 760px;
+      overflow: auto;
+      padding: 28px;
+      text-align: center;
+      background: #e8e6e1;
+    }
+
+    canvas {
+      display: inline-block;
+      max-width: 100%;
+      height: auto;
+      background: #ffffff;
+      box-shadow: 0 5px 24px rgba(0, 0, 0, 0.16);
+    }
+
+    .loading,
+    .error {
+      padding: 60px 20px;
+      color: #666666;
+      font-size: 15px;
+    }
+
+    @media (max-width: 650px) {
+      body {
+        padding: 0;
+      }
+
+      .viewer {
+        border: none;
+        border-radius: 0;
+      }
+
+      .header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .canvas-container {
+        height: 650px;
+        padding: 12px;
+      }
+
+      .spacer {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="viewer" id="viewer">
+    <header class="header">
+      <div class="title">
+        <h1>TSUGU Kamakura</h1>
+        <p>
+          Teenage Business Writing Contest 2026 · Finalist Proposal
+        </p>
+      </div>
+
+      <a
+        class="open-button"
+        href="./tsugu-kamakura.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open PDF ↗
+      </a>
+    </header>
+
+    <nav class="toolbar" aria-label="PDF controls">
+      <button id="previous-button" type="button">
+        ← Previous
+      </button>
+
+      <button id="next-button" type="button">
+        Next →
+      </button>
+
+      <span class="page-info">
+        Page
+        <span id="current-page">1</span>
+        of
+        <span id="total-pages">–</span>
+      </span>
+
+      <div class="spacer"></div>
+
+      <button
+        id="zoom-out-button"
+        type="button"
+        aria-label="Zoom out"
+      >
+        −
+      </button>
+
+      <button
+        id="zoom-in-button"
+        type="button"
+        aria-label="Zoom in"
+      >
+        +
+      </button>
+
+      <button
+        id="fullscreen-button"
+        type="button"
+      >
+        Fullscreen
+      </button>
+    </nav>
+
+    <section
+      class="canvas-container"
+      id="canvas-container"
+    >
+      <div class="loading" id="loading-message">
+        Loading proposal…
+      </div>
+
+      <canvas
+        id="pdf-canvas"
+        aria-label="TSUGU Kamakura proposal page"
+      ></canvas>
+    </section>
+  </main>
+
+  <script type="module">
+    import * as pdfjsLib from
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs";
+
+    const pdfUrl = "./tsugu-kamakura.pdf";
+
+    const viewer = document.getElementById("viewer");
+    const canvas = document.getElementById("pdf-canvas");
+    const context = canvas.getContext("2d");
+
+    const container =
+      document.getElementById("canvas-container");
+
+    const loadingMessage =
+      document.getElementById("loading-message");
+
+    const previousButton =
+      document.getElementById("previous-button");
+
+    const nextButton =
+      document.getElementById("next-button");
+
+    const zoomInButton =
+      document.getElementById("zoom-in-button");
+
+    const zoomOutButton =
+      document.getElementById("zoom-out-button");
+
+    const fullscreenButton =
+      document.getElementById("fullscreen-button");
+
+    const currentPageLabel =
+      document.getElementById("current-page");
+
+    const totalPagesLabel =
+      document.getElementById("total-pages");
+
+    let pdfDocument = null;
+    let currentPage = 1;
+    let scale = 1.25;
+    let isRendering = false;
+    let pendingPage = null;
+
+    async function renderPage(pageNumber) {
+      isRendering = true;
+
+      try {
+        const page =
+          await pdfDocument.getPage(pageNumber);
+
+        const viewport =
+          page.getViewport({ scale });
+
+        const pixelRatio =
+          window.devicePixelRatio || 1;
+
+        canvas.width =
+          Math.floor(viewport.width * pixelRatio);
+
+        canvas.height =
+          Math.floor(viewport.height * pixelRatio);
+
+        canvas.style.width =
+          `${Math.floor(viewport.width)}px`;
+
+        canvas.style.height =
+          `${Math.floor(viewport.height)}px`;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport,
+          transform:
+            pixelRatio === 1
+              ? null
+              : [
+                  pixelRatio,
+                  0,
+                  0,
+                  pixelRatio,
+                  0,
+                  0
+                ]
+        };
+
+        await page.render(renderContext).promise;
+
+        currentPageLabel.textContent =
+          String(pageNumber);
+
+        previousButton.disabled =
+          pageNumber <= 1;
+
+        nextButton.disabled =
+          pageNumber >= pdfDocument.numPages;
+
+        container.scrollTop = 0;
+        container.scrollLeft = 0;
+      } catch (error) {
+        showError(
+          "The page could not be displayed."
+        );
+
+        console.error(error);
+      } finally {
+        isRendering = false;
+
+        if (pendingPage !== null) {
+          const pageToRender = pendingPage;
+          pendingPage = null;
+          renderPage(pageToRender);
+        }
+      }
+    }
+
+    function queueRender(pageNumber) {
+      if (isRendering) {
+        pendingPage = pageNumber;
+      } else {
+        renderPage(pageNumber);
+      }
+    }
+
+    function showError(message) {
+      loadingMessage.style.display = "block";
+      loadingMessage.className = "error";
+      loadingMessage.textContent = message;
+      canvas.style.display = "none";
+    }
+
+    previousButton.addEventListener(
+      "click",
+      () => {
+        if (currentPage <= 1) {
+          return;
+        }
+
+        currentPage -= 1;
+        queueRender(currentPage);
+      }
+    );
+
+    nextButton.addEventListener(
+      "click",
+      () => {
+        if (
+          !pdfDocument ||
+          currentPage >= pdfDocument.numPages
+        ) {
+          return;
+        }
+
+        currentPage += 1;
+        queueRender(currentPage);
+      }
+    );
+
+    zoomInButton.addEventListener(
+      "click",
+      () => {
+        scale = Math.min(scale + 0.2, 3);
+        queueRender(currentPage);
+      }
+    );
+
+    zoomOutButton.addEventListener(
+      "click",
+      () => {
+        scale = Math.max(scale - 0.2, 0.6);
+        queueRender(currentPage);
+      }
+    );
+
+    fullscreenButton.addEventListener(
+      "click",
+      async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await viewer.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (error) {
+          console.error(
+            "Fullscreen is unavailable:",
+            error
+          );
+        }
+      }
+    );
+
+    try {
+      pdfDocument =
+        await pdfjsLib.getDocument(pdfUrl).promise;
+
+      totalPagesLabel.textContent =
+        String(pdfDocument.numPages);
+
+      loadingMessage.style.display = "none";
+      canvas.style.display = "inline-block";
+
+      await renderPage(currentPage);
+    } catch (error) {
+      showError(
+        "Unable to load the PDF. Confirm that tsugu-kamakura.pdf is uploaded to the same GitHub repository."
+      );
+
+      console.error(error);
+    }
+  </script>
+</body>
+</html>
